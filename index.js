@@ -10,7 +10,7 @@ function getProductsList() {
   });
 }
 
-// ----------render ra bảng--------------
+// ----------RENDER TABLE FUNCTION--------------
 function renderTable(data) {
   let html = "";
   for (let i = 0; i < data.length; i++) {
@@ -25,16 +25,15 @@ function renderTable(data) {
     <td>${currentProd.type}</td>
     <td>
     <button class="btn btn-danger" onclick="deleteProd('${currentProd.id}')"><i class="fa fa-trash"></i></button>
-    <button class="btn btn-warning"><i class="fa fa-pencil" style="color:white"></i></button>
+    <a href = "#form"><button class="btn btn-warning" onclick ="updateProd('${currentProd.id}')"><i class="fa fa-pencil" style="color:white"></i></button></a>
     </td>
     </tr>
     `;
   }
   document.querySelector("#tbodyProduct").innerHTML = html;
 }
-// ------------create-------------
-var prodList = [];
-document.getElementById("createButton").onclick = function creatProd() {
+// ------------CREATE FUNCTION-------------
+document.getElementById("createButton").onclick = async function creatProd() {
   var newProd = new Product();
   newProd["id"] = document.getElementById("id").value;
   newProd["name"] = document.getElementById("name").value;
@@ -44,36 +43,108 @@ document.getElementById("createButton").onclick = function creatProd() {
   newProd["description"] = document.getElementById("description").value;
   /*thông báo thêm thành công hoặc thất bại*/
   let mess = "";
+  try {
+    let result = await axios({
+      url: "http://svcy.myclass.vn/api/Product/CreateProduct",
+      method: "POST",
+      data: newProd,
+    });
+    mess = result.data;
+    alert("thêm thành công");
+    getProductsList();
+  } catch (err) {
+    alert(err.respones?.data);
+  }
+};
+//   let promise = axios({
+//     url: "http://svcy.myclass.vn/api/Product/CreateProduct",
+//     method: "POST",
+//     data: newProd,
+//   });
+//   promise.then(function (result) {
+//     console.log(result);
+//     alert("Create Success!")
+//   });
+//   promise.catch(function (err) {
+//     console.log("err", err);
+//   });
+//   getProductsList();
+// };
+
+// ---------DELETE FUNCTION---------
+function deleteProd(idProdClick) {
   let promise = axios({
-    url: "http://svcy.myclass.vn/api/Product/CreateProduct",
-    method: "POST",
-    data: newProd,
+    url: "http://svcy.myclass.vn/api/Product/DeleteProduct/" + idProdClick,
+    method: "DELETE",
   });
   promise.then(function (result) {
-    console.log(result);
-  });
-  promise.catch(function(err){
-    console.log("err", err)
-  })
-  getProductsList();
-
-}
-
-// ---------Delete---------
-function deleteProd(idProdClick){
-  let promise= axios({
-    url:"http://svcy.myclass.vn/api/Product/DeleteProduct/" + idProdClick,
-    method: "DELETE"
-  })
-  promise.then(function(result){
+    console.log(result.data);
     getProductsList();
   });
-  Promise.catch(function(err){
-    console.log (err);
-    alert("Delete completed")
-  })
+  promise.catch(function (err) {
+    console.log(err);
+  });
+  alert("Delete completed");
 }
+// -----------UPDATE FUNCTION------------
+function updateProd(idProdClick) {
+  document.getElementById("updateButton").style.display = "inline-block";
+  document.getElementById("createButton").style.display = "none";
+  document.getElementById("id").disabled = true;
 
- window.onload = function () {
+  let promise = axios({
+    url: "http://svcy.myclass.vn/api/Product/GetById/" + idProdClick,
+    method: "GET",
+  });
+  promise.then(function (result) {
+    console.log(result.data);
+    let currentProd = result.data;
+    document.getElementById("id").value = currentProd.id;
+    document.getElementById("name").value = currentProd.name;
+    document.getElementById("img").value = currentProd.img;
+    document.getElementById("type").value = currentProd.type;
+    document.getElementById("price").value = currentProd.price;
+    document.getElementById("description").value = currentProd.description;
+  });
+  promise.catch(function (err) {
+    console.log("err", err);
+  });
+  // console.log("hello")
+}
+// sau khi chỉnh form input bấm confirm update
+function confirmUpdate() {
+  // new prototype cho các chức năng Create và Update cái giá trị đã fix lên API. Vì bản chất tạo mới/fix lại mới thì sẽ tạo ra 1 object mới nên vì thế phải new prototype. Tương tự, ta chỉ truyền data là object vào axios cũng chỉ cho 2 chức năng là tạo và update-lưu !!!
+  let updateProd = new Product();
+  updateProd.id = document.getElementById("id").value;
+  updateProd.name = document.getElementById("name").value;
+  updateProd.img = document.getElementById("img").value;
+  updateProd.type = document.getElementById("type").value;
+  updateProd.price = document.getElementById("price").value;
+  updateProd.description = document.getElementById("description").value;
+  console.log("nqwwe", updateProd);
+
+  let promise = axios({
+    url: "http://svcy.myclass.vn/api/Product/UpdateProduct/" + updateProd.id,
+    method: "PUT",
+    data: updateProd,
+  });
+  promise.then(function (result) {
+    // console.log("hello", result.data);
+    getProductsList();/*gọi getProductList vì lúc này API đã nhận object mới được update đẩy lên nên get api về (trong api có chạy luôn render table r nên sẽ xuất ra bảng*/
+    cancel(); /*f5 lại trang */
+    alert("Update successfully");
+  });
+  promise.catch(function (err) {
+    console.log("err", err);
+  });
+}
+//-------------------------------SEARCH BY NAME FUNCTION-------------------------
+// --------CANCEL BTN-----------
+function cancel() {
+  location.reload();
+}
+// -------------ONLOAD-------------------
+window.onload = function () {
   getProductsList();
+  document.getElementById("updateButton").style.display = "none";
 };
